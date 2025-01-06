@@ -1,0 +1,12 @@
+.{
+    .name = "Synth",
+    .version = "0.1.0",
+    .dependencies = .{
+        .arbor = .{
+            .path = "../..",
+        },
+    },
+    .paths = .{
+        "",
+    },
+}
