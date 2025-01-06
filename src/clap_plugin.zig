@@ -74,37 +74,41 @@ const AudioPorts = struct {
     };
 };
 
-// TODO: Implement plugin note ports
-// const NotePorts = struct {
-//     fn count(plugin: ?*const clap.Plugin, is_input: bool) callconv(.C) u32 {
-//         _ = is_input;
-//         _ = plugin;
-//         // TODO: Query whether there are note ports
-//         return 0;
-//     }
+const NotePorts = struct {
+    fn count(plugin: ?*const clap.Plugin, is_input: bool) callconv(.C) u32 {
+        _ = plugin;
+        return if (is_input) 1 else 1; // Example: One input and one output note port
+    }
 
-//     fn get(
-//         plugin: ?*const clap.Plugin,
-//         index: u32,
-//         is_input: bool,
-//         info: ?*clap.clap_note_port_info_t,
-//     ) callconv(.C) bool {
-//         _ = is_input;
-//         _ = plugin;
-//         if (index > 0)
-//             return false;
-//         info.*.id = 0;
-//         std.log.defaultLog(.info, .default, "Note port: {s}", .{info.*.name});
-//         info.*.supported_dialects = clap.CLAP_NOTE_DIALECT_MIDI;
-//         info.*.preferred_dialect = clap.CLAP_NOTE_DIALECT_CLAP;
-//         return true;
-//     }
+    fn get(
+        plugin: ?*const clap.Plugin,
+        index: u32,
+        is_input: bool,
+        info: ?*clap.NotePorts.Info,
+    ) callconv(.C) bool {
+        _ = is_input;
+        _ = plugin;
+        if (index > 0) return false; // Only one port for now
+        if (info) |ptr| {
+            ptr.* = .{
+                .id = 0,
+                .name = undefined, // Initialize the array
+                .supported_dialects = 0x01, // Assuming MIDI dialect
+                .preferred_dialect = 0x01, // Assuming MIDI dialect
+                .channel_count = 16, // Example: 16 MIDI channels
+                .port_type = "midi", // Update if specific type is needed
+            };
 
-//     const Data = clap.NotePorts{
-//         .count = count,
-//         .get = get,
-//     };
-// };
+            return true;
+        }
+        return false;
+    }
+
+    const Data = clap.NotePorts{
+        .count = count,
+        .get = get,
+    };
+};
 
 pub const Latency = struct {
     fn getLatency(plugin: ?*const clap.Plugin) callconv(.C) u32 {
@@ -725,9 +729,8 @@ pub fn getExtension(plugin: ?*const clap.Plugin, id: [*:0]const u8) callconv(.C)
         return &Latency.Data;
     if (std.mem.orderZ(u8, id, clap.EXT_AUDIO_PORTS).compare(.eq))
         return &AudioPorts.Data;
-    // TODO: NotePorts
-    // if (std.mem.orderZ(u8, id, clap.EXT_NOTE_PORTS).compare(.eq))
-    //     return &NotePorts.Data;
+    if (std.mem.orderZ(u8, id, clap.EXT_NOTE_PORTS).compare(.eq))
+        return &NotePorts.Data;
     if (std.mem.orderZ(u8, id, clap.EXT_STATE).compare(.eq))
         return &State.Data;
     if (std.mem.orderZ(u8, id, clap.EXT_PARAMS).compare(.eq))

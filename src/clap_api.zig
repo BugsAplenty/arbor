@@ -416,6 +416,7 @@ pub const PluginFeatures = struct {
 };
 
 pub const EXT_AUDIO_PORTS = "clap.audio-ports";
+
 pub const AudioPorts = extern struct {
     pub const MONO = "mono";
     pub const STEREO = "stereo";
@@ -518,7 +519,19 @@ pub const HostNoteName = extern struct {
 };
 
 pub const EXT_NOTE_PORTS = "clap.note-ports";
-// TODO: NOte ports
+pub const NotePorts = extern struct {
+    count: *const fn (plugin: ?*const Plugin, is_input: bool) callconv(.C) u32,
+    get: *const fn (plugin: ?*const Plugin, index: u32, is_input: bool, info: ?*Info) callconv(.C) bool,
+
+    pub const Info = extern struct {
+        id: Id,
+        name: [NAME_SIZE]u8,
+        channel_count: u32,
+        port_type: [*:0]const u8,
+        supported_dialects: u32,
+        preferred_dialect: u32,
+    };
+};
 
 pub const EXT_PARAMS = "clap.params";
 pub const params = struct {
