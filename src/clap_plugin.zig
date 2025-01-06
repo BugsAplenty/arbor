@@ -587,6 +587,14 @@ pub fn processInEvent(plugin: *ClapPlugin, event: ?*const clap.EventHeader) void
                         gui.wants_repaint.store(true, .release);
                     }
                 },
+                .NOTE_ON => {
+                    const note_event = cast(*const clap.NoteEvent, e);
+                    log.info("Note on: {d}\n", .{note_event.note_id}, @src());
+                },
+                .NOTE_OFF => {
+                    const note_event = cast(*const clap.NoteEvent, e);
+                    log.info("Note off: {d}\n", .{note_event.note_id}, @src());
+                },
                 // TODO: Separate functions for audio & MIDI events
                 else => log.err("Unhandled event: {s}\n", .{@tagName(e.type)}, @src()),
             }
