@@ -14,8 +14,7 @@ pub fn build(b: *std.Build) !void {
             .contact = "",
             .description = "A simple synthesizer",
         },
-        .features = arbor.features.STEREO | arbor.features.INSTRUMENT |
-            arbor.features.GUI,
+        .features = arbor.features.STEREO | arbor.features.INSTRUMENT,
         .root_source_file = "plugin.zig",
         .target = b.standardTargetOptions(.{}),
         .optimize = b.standardOptimizeOption(.{}),

@@ -9,6 +9,7 @@ const log = arbor.log;
 const cast = arbor.cast;
 const Slice = arbor.Slice;
 const clap = arbor.clap;
+const VoicePool = @import("voice_pool").VoicePool;
 
 // TODO: Can we inherit the allocator decalred in user plugin somehow?
 const allocator = std.heap.c_allocator;
@@ -565,7 +566,7 @@ pub fn reset(plugin: ?*const clap.Plugin) callconv(.C) void {
 /// Take a CLAP event (just param changes for now), change the corresponding
 /// parameter, and forward a param change event to the GUI
 pub fn processInEvent(plugin: *ClapPlugin, event: ?*const clap.EventHeader) void {
-    const plug = plugin.plugin orelse {
+    const plug: *arbor.Plugin = plugin.plugin orelse {
         log.err("Plugin is null\n", .{}, @src());
         return;
     };
@@ -588,12 +589,16 @@ pub fn processInEvent(plugin: *ClapPlugin, event: ?*const clap.EventHeader) void
                     }
                 },
                 .NOTE_ON => {
-                    const note_event = cast(*const clap.NoteEvent, e);
-                    log.info("Note on: {d}\n", .{note_event.note_id}, @src());
+                    const note_on = cast(*const clap.NoteEvent, e);
+                    log.info("Note on: {d}\n", .{note_on.note_id}, @src());
+                    // Start the note in VoicePool
+                    plug.voice_pool.start_note(@intCast(note_on.note_id), @intFromFloat(note_on.velocity), @intCast(note_on.channel), plug.sample_rate);
                 },
                 .NOTE_OFF => {
-                    const note_event = cast(*const clap.NoteEvent, e);
-                    log.info("Note off: {d}\n", .{note_event.note_id}, @src());
+                    const note_off = cast(*const clap.NoteEvent, e);
+                    log.info("Note off: {d}\n", .{note_off.note_id}, @src());
+                    // Stop the note in VoicePool
+                    plug.voice_pool.stop_note(@intCast(note_off.note_id));
                 },
                 // TODO: Separate functions for audio & MIDI events
                 else => log.err("Unhandled event: {s}\n", .{@tagName(e.type)}, @src()),
@@ -604,7 +609,6 @@ pub fn processInEvent(plugin: *ClapPlugin, event: ?*const clap.EventHeader) void
         return;
     }
 }
-
 /// Read events from GUI and forward them to CLAP host
 pub fn processOutEvent(plugin: *ClapPlugin, clap_events: *const clap.OutputEvents) void {
     const plug = plugin.plugin orelse {

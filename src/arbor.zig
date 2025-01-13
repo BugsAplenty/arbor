@@ -23,7 +23,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 pub const config = @import("config");
 const Allocator = std.mem.Allocator;
-
+const VoicePool = @import("VoicePool.zig").VoicePool;
+const Waveform = @import("oscillator.zig").Waveform;
 pub const param = @import("params.zig");
 pub const Parameter = param.Parameter;
 
@@ -100,6 +101,7 @@ pub const Plugin = struct {
     mutex: std.Thread.Mutex = .{},
 
     allocator: Allocator = std.heap.c_allocator,
+    voice_pool: VoicePool,
 
     // functions for dealing with a plugin's parameters
 
