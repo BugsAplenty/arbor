@@ -21,14 +21,28 @@ pub const Oscillator = struct {
     sample_rate: f32,
     phase: f32,
     phase_increment: f32,
+    rng: std.rand.DefaultPrng, // persistent RNG for Noise
 
     /// Initialize the Oscillator
-    pub fn init(self: *Oscillator, waveform: Waveform, frequency: f32, sample_rate: f32) void {
+    /// - Follows the "pointer + !void" style of filter.zig
+    pub fn init(self: *Oscillator, sample_rate: f32, waveform: Waveform) !void {
+        // 1) Basic state
         self.waveform = waveform;
-        self.frequency = frequency;
+        self.frequency = 440.0; // default freq (A4)
         self.sample_rate = sample_rate;
         self.phase = 0.0;
         self.phase_increment = (2.0 * math.pi * self.frequency) / self.sample_rate;
+
+        // 2) Initialize RNG (noise path) - might fail in some Zig versions
+        // so we do `try` for safety
+        self.rng = std.rand.DefaultPrng.init(12345);
+    }
+
+    /// (Optional) Deinitialize the Oscillator
+    pub fn deinit(self: *Oscillator) void {
+        // If you needed to free something or close a file handle, do it here.
+        // For an inline rng and some floats, there's nothing to free.
+        _ = self;
     }
 
     /// Set the Oscillator's frequency
@@ -60,8 +74,10 @@ pub const Oscillator = struct {
                 sample = if (self.phase < (2.0 * math.pi * pulse_width)) 1.0 else -1.0;
             },
             .Noise => {
-                // Generate white noise
-                sample = std.rand.DefaultPrng.init(std.rand.default_seed()).nextFloat() * 2.0 - 1.0;
+                // Generate white noise using the persistent RNG
+                // In your Noise case:
+                var rng = std.rand.DefaultPrng.init(12345);
+                sample = rng.random().float(f32);
             },
         }
 

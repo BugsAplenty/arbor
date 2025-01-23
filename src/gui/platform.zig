@@ -3,7 +3,7 @@
 const std = @import("std");
 const windows = std.os.windows;
 const builtin = @import("builtin");
-const Gui = @import("Gui.zig");
+const Gui = @import("gui.zig");
 
 pub const Window = switch (builtin.os.tag) {
     .windows => windows.HWND,

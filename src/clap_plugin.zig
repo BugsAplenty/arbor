@@ -592,7 +592,7 @@ pub fn processInEvent(plugin: *ClapPlugin, event: ?*const clap.EventHeader) void
                     const note_on = cast(*const clap.NoteEvent, e);
                     log.info("Note on: {d}\n", .{note_on.note_id}, @src());
                     // Start the note in VoicePool
-                    plug.voice_pool.start_note(@intCast(note_on.note_id), @intFromFloat(note_on.velocity), @intCast(note_on.channel), plug.sample_rate);
+                    plug.voice_pool.start_note(@intCast(note_on.note_id), @intFromFloat(note_on.velocity), @intCast(note_on.channel), 44100.0);
                 },
                 .NOTE_OFF => {
                     const note_off = cast(*const clap.NoteEvent, e);

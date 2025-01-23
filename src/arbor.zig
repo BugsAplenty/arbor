@@ -23,8 +23,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 pub const config = @import("config");
 const Allocator = std.mem.Allocator;
-const VoicePool = @import("VoicePool.zig").VoicePool;
-const Waveform = @import("oscillator.zig").Waveform;
 pub const param = @import("params.zig");
 pub const Parameter = param.Parameter;
 
@@ -35,7 +33,7 @@ pub const Format = enum {
 };
 const format = config.format;
 
-pub const Gui = @import("gui/Gui.zig");
+pub const Gui = @import("gui/gui.zig");
 
 pub const dsp = @import("dsp/dsp.zig");
 
@@ -101,7 +99,7 @@ pub const Plugin = struct {
     mutex: std.Thread.Mutex = .{},
 
     allocator: Allocator = std.heap.c_allocator,
-    voice_pool: VoicePool,
+    voice_pool: dsp.VoicePool,
 
     // functions for dealing with a plugin's parameters
 
@@ -155,6 +153,9 @@ pub fn init(
         .param_info = params,
         .params = param.createSlice(allocator, params),
         .allocator = allocator,
+        .voice_pool = dsp.VoicePool{
+            .voices = &[_]dsp.Voice{},
+        },
     };
     return plug;
 }

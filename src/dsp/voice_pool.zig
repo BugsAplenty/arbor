@@ -3,12 +3,8 @@
 
 const std = @import("std");
 const math = std.math;
-const allocator = std.heap.page_allocator;
-const libOscillator = @import("oscillator.zig");
-const Oscillator = libOscillator.Oscillator;
-const Waveform = libOscillator.Waveform;
-
-const log = @import("arbor.zig").log;
+const Oscillator = @import("oscillator.zig").Oscillator;
+const Waveform = @import("oscillator.zig").Waveform;
 
 /// Voice Struct
 pub const Voice = struct {
@@ -21,14 +17,16 @@ pub const Voice = struct {
     oscillator: Oscillator,
 
     /// Initialize the Voice
-    pub fn init(self: *Voice, sample_rate: f32, waveform: Oscillator.Waveform) !void {
+    pub fn init(self: *Voice, sample_rate: f32, waveform: Waveform) !void {
+        // 1) we set local fields
+        self.sample_rate = sample_rate;
         self.isActive = false;
         self.note = 0;
         self.velocity = 0;
         self.channel = 0;
-        self.sample_rate = sample_rate;
         self.amplitude = 0.0;
-        try self.oscillator.init(waveform, 440.0, sample_rate); // Default frequency A4
+        // 2) init oscillator
+        try self.oscillator.init(sample_rate, waveform);
     }
 
     /// Start the Voice with a note
@@ -37,7 +35,7 @@ pub const Voice = struct {
         self.note = note;
         self.velocity = velocity;
         self.channel = channel;
-        self.amplitude = @as(f32, @floatFromInt(velocity)) / 127.0; // Normalize velocity (0.0 to 1.0)
+        self.amplitude = @as(f32, @floatFromInt(velocity)) / 127.0; // 0..1 range
         self.oscillator.set_frequency(midiNoteToFrequency(note));
         self.oscillator.reset_phase();
     }
@@ -57,8 +55,9 @@ pub const Voice = struct {
 
     /// Deinitialize the Voice
     pub fn deinit(self: *Voice) void {
+        // If you had to free anything, you'd do it here.
+        // For now, just ensure the Voice is inactive:
         self.stop();
-        // Additional cleanup if necessary
     }
 
     /// Convert MIDI note to frequency
@@ -72,27 +71,40 @@ pub const VoicePool = struct {
     voices: []Voice,
 
     /// Initialize the VoicePool with a specific number of voices and sample rate
-    pub fn init(self: *VoicePool, memAllocator: std.mem.Allocator, num_voices: usize, sample_rate: f32, default_waveform: Waveform) !void {
-        self.voices = try memAllocator.alloc(Voice, num_voices);
+    /// matching the style: returns error union plus the struct
+    pub fn init(allocator: std.mem.Allocator, num_voices: usize, sample_rate: f32) !VoicePool {
+        var self = VoicePool{
+            .voices = &[_]Voice{},
+        };
+        // allolcate
+        self.voices = try allocator.alloc(Voice, num_voices);
+        // init each voice
         for (self.voices) |*voice| {
-            try voice.init(sample_rate, default_waveform);
+            try voice.init(sample_rate, .Sine);
         }
+        return self;
     }
 
+
     /// Start a note by allocating an available voice
-    pub fn start_note(self: *VoicePool, note: u8, velocity: u8, channel: u8, sample_rate: f32) void {
-        // Find the first inactive voice
+    pub fn start_note(
+        self: *VoicePool,
+        note: u8,
+        velocity: u8,
+        channel: u8,
+        sample_rate: f32,
+    ) void {
+        // We might not need sample_rate if each voice already has sample_rate
         _ = sample_rate;
+
+        // Find the first inactive voice
         for (self.voices) |*voice| {
             if (!voice.isActive) {
                 voice.start(note, velocity, channel);
                 return;
             }
         }
-
-        // If all voices are active, implement voice stealing (e.g., steal the oldest voice)
-        // For simplicity, steal the first voice
-        log.info("Stealing voice for note {d}\n", .{note}, @src());
+        // If all voices are active, implement voice stealing
         self.voices[0].start(note, velocity, self.voices[0].channel);
     }
 
@@ -104,7 +116,6 @@ pub const VoicePool = struct {
                 return;
             }
         }
-        log.err("Attempted to stop inactive or non-existent note {d}\n", .{note}, @src());
     }
 
     /// Generate the mix by summing all active voices
@@ -113,17 +124,15 @@ pub const VoicePool = struct {
         for (self.voices) |voice| {
             mix += voice.generate_sample();
         }
-        // Prevent clipping by limiting the mix
         if (mix > 1.0) mix = 1.0;
         if (mix < -1.0) mix = -1.0;
         return mix;
     }
 
-    /// Free the VoicePool resources
-    pub fn free(self: *VoicePool, memAllocator: *std.mem.Allocator) void {
+    pub fn deinit(self: *VoicePool, allocator: std.mem.Allocator) void {
         for (self.voices) |*voice| {
             voice.deinit();
         }
-        memAllocator.free(self.voices);
+        allocator.free(self.voices);
     }
 };

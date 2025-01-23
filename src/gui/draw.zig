@@ -1,9 +1,9 @@
 const std = @import("std");
 pub const olivec = @import("olivec.zig");
 pub usingnamespace olivec;
-pub const Text = @import("Text.zig");
+pub const Text = @import("text.zig");
 pub usingnamespace Text;
-pub const Color = @import("Color.zig");
+pub const Color = @import("color.zig");
 pub usingnamespace Color;
 
 pub const Vec2 = extern struct {
