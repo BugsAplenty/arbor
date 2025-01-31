@@ -57,7 +57,7 @@ const AudioPorts = struct {
         if (info) |ptr| {
             ptr.* = .{
                 .id = 0,
-                .name = undefined,
+                .name = .{0} ** clap.NAME_SIZE,
                 .channel_count = 2,
                 .flags = clap.AudioPorts.Flags{ .IS_MAIN = true },
                 .port_type = clap.AudioPorts.STEREO,
@@ -89,17 +89,25 @@ const NotePorts = struct {
     ) callconv(.C) bool {
         _ = is_input;
         _ = plugin;
-        if (index > 0) return false; // Only one port for now
+        if (index > 0) return false;
         if (info) |ptr| {
             ptr.* = .{
                 .id = 0,
-                .name = undefined, // Initialize the array
-                .supported_dialects = 0x01, // Assuming MIDI dialect
-                .preferred_dialect = 0x01, // Assuming MIDI dialect
-                .channel_count = 16, // Example: 16 MIDI channels
-                .port_type = "midi", // Update if specific type is needed
+                .name = .{0} ** clap.NAME_SIZE,
+                .supported_dialects = clap.NoteDialect.MIDI | clap.NoteDialect.CLAP,
+                .preferred_dialect = clap.NoteDialect.MIDI,
+                .channel_count = 16,
+                .port_type = "midi",
             };
 
+            // Now print exactly what we wrote
+            std.debug.print(
+                "note_ports.get => is_input={}, index={}, dialects=0x{08x}, preferred=0x{08x}\n",
+                .{ is_input, index, ptr.supported_dialects, ptr.preferred_dialect },
+            );
+
+            // Also show the memory address & contents if you want
+            std.debug.print("info pointer = {p}\n", .{ptr});
             return true;
         }
         return false;
@@ -592,13 +600,16 @@ pub fn processInEvent(plugin: *ClapPlugin, event: ?*const clap.EventHeader) void
                     const note_on = cast(*const clap.NoteEvent, e);
                     log.info("Note on: {d}\n", .{note_on.note_id}, @src());
                     // Start the note in VoicePool
-                    plug.voice_pool.start_note(@intCast(note_on.note_id), @intFromFloat(note_on.velocity), @intCast(note_on.channel), 44100.0);
+                    plug.voice_pool.start_note(@intCast(note_on.note_id), @intFromFloat(note_on.velocity), @intCast(note_on.channel), 48000.0);
                 },
                 .NOTE_OFF => {
                     const note_off = cast(*const clap.NoteEvent, e);
                     log.info("Note off: {d}\n", .{note_off.note_id}, @src());
                     // Stop the note in VoicePool
                     plug.voice_pool.stop_note(@intCast(note_off.note_id));
+                },
+                .MIDI => {
+                    log.info("MIDI event\n", .{}, @src());
                 },
                 // TODO: Separate functions for audio & MIDI events
                 else => log.err("Unhandled event: {s}\n", .{@tagName(e.type)}, @src()),

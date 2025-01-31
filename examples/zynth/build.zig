@@ -4,8 +4,8 @@ const arbor = @import("arbor");
 pub fn build(b: *std.Build) !void {
     try arbor.addPlugin(b, .{
         .description = .{
-            .name = "Synth",
-            .id = "com.BugsAplenty.Synth",
+            .name = "Zynth",
+            .id = "com.BugsAplenty.Zynth",
             .company = "BugsAplenty",
             .version = "0.1.0",
             .copyright = "MIT",

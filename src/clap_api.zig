@@ -52,7 +52,7 @@ pub fn clap_version_is_compatible(v: Version) bool {
     return v.major >= 1;
 }
 
-pub const CLAP_VERSION: Version = .{ .major = 1, .minor = 1, .revision = 10 };
+pub const CLAP_VERSION: Version = .{ .major = 1, .minor = 2, .revision = 3 };
 
 pub const NAME_SIZE = 256;
 pub const PATH_SIZE = 1024;
@@ -519,6 +519,12 @@ pub const HostNoteName = extern struct {
 };
 
 pub const EXT_NOTE_PORTS = "clap.note-ports";
+pub const NoteDialect = struct {
+    pub const CLAP = 1 << 0;
+    pub const MIDI = 1 << 1;
+    pub const MIDI_MPE = 1 << 2;
+    pub const MIDI2 = 1 << 3;
+};
 pub const NotePorts = extern struct {
     count: *const fn (plugin: ?*const Plugin, is_input: bool) callconv(.C) u32,
     get: *const fn (plugin: ?*const Plugin, index: u32, is_input: bool, info: ?*Info) callconv(.C) bool,

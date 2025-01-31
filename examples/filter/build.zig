@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) !void {
             .contact = "",
             .description = "Vintage analog warmth",
         },
-        .features = arbor.features.STEREO | arbor.features.EFFECT,
+        .features = arbor.features.INSTRUMENT | arbor.features.STEREO | arbor.features.EFFECT,
         .root_source_file = "plugin.zig",
         .target = b.standardTargetOptions(.{}),
         .optimize = b.standardOptimizeOption(.{}),
